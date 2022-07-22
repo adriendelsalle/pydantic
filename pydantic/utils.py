@@ -614,6 +614,15 @@ class ClassAttribute:
         raise AttributeError(f'{self.name!r} attribute of {owner.__name__!r} is class-only')
 
 
+class DotDict(dict):
+    """
+    Helper class to get/set dict values using the dot operator
+    """
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
+
 path_types = {
     'is_dir': 'directory',
     'is_file': 'file',

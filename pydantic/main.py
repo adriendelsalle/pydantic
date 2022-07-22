@@ -46,6 +46,7 @@ from .typing import (
 from .utils import (
     ROOT_KEY,
     ClassAttribute,
+    DotDict,
     GetterDict,
     Representation,
     ValueItems,
@@ -362,7 +363,7 @@ class BaseModel(Representation, metaclass=ModelMetaclass):
 
             for validator in self.__pre_root_validators__:
                 try:
-                    new_values = validator(self.__class__, new_values)
+                    new_values = validator(self.__class__, DotDict(new_values))
                 except (ValueError, TypeError, AssertionError) as exc:
                     raise ValidationError([ErrorWrapper(exc, loc=ROOT_KEY)], self.__class__)
 
@@ -374,7 +375,7 @@ class BaseModel(Representation, metaclass=ModelMetaclass):
                 # - keep the order of the fields
                 if not known_field.field_info.allow_mutation:
                     raise TypeError(f'"{known_field.name}" has allow_mutation set to False and cannot be assigned')
-                dict_without_original_value = {k: v for k, v in self.__dict__.items() if k != name}
+                dict_without_original_value = DotDict({k: v for k, v in self.__dict__.items() if k != name})
                 value, error_ = known_field.validate(value, dict_without_original_value, loc=name, cls=self.__class__)
                 if error_:
                     raise ValidationError([error_], self.__class__)
@@ -386,7 +387,7 @@ class BaseModel(Representation, metaclass=ModelMetaclass):
                 if skip_on_failure and errors:
                     continue
                 try:
-                    new_values = validator(self.__class__, new_values)
+                    new_values = validator(self.__class__, DotDict(new_values))
                 except (ValueError, TypeError, AssertionError) as exc:
                     errors.append(ErrorWrapper(exc, loc=ROOT_KEY))
             if errors:
@@ -1009,7 +1010,7 @@ def validate_model(  # noqa: C901 (ignore complexity)
 
     for validator in model.__pre_root_validators__:
         try:
-            input_data = validator(cls_, input_data)
+            input_data = validator(cls_, DotDict(input_data))
         except (ValueError, TypeError, AssertionError) as exc:
             return {}, set(), ValidationError([ErrorWrapper(exc, loc=ROOT_KEY)], cls_)
 
@@ -1035,7 +1036,7 @@ def validate_model(  # noqa: C901 (ignore complexity)
             if check_extra:
                 names_used.add(field.name if using_name else field.alias)
 
-        v_, errors_ = field.validate(value, values, loc=field.alias, cls=cls_)
+        v_, errors_ = field.validate(value, DotDict(values), loc=field.alias, cls=cls_)
         if isinstance(errors_, ErrorWrapper):
             errors.append(errors_)
         elif isinstance(errors_, list):
@@ -1061,7 +1062,7 @@ def validate_model(  # noqa: C901 (ignore complexity)
         if skip_on_failure and errors:
             continue
         try:
-            values = validator(cls_, values)
+            values = validator(cls_, DotDict(values))
         except (ValueError, TypeError, AssertionError) as exc:
             errors.append(ErrorWrapper(exc, loc=ROOT_KEY))
 
